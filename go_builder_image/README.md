@@ -19,7 +19,7 @@ The Dockerfile contains instructions to install all of the necessary tools and l
 This script is run during the S2I build process and is responsible for the actual building of the go application 
 
 #### run
-This script will be used to run the go application and will be set as the CMD for the resulting application image.  To make sure that signals are correctly propagated to the container, the application should be started using the _exec_ command.
+This script will be used to run the go application and will be set as the CMD for the resulting application image.  To make sure that signals are correctly propagated to the container, the application should be started using the __exec__ command.
 
 #### usage (optional) 
 This script will print out instructions on how to use the image.
