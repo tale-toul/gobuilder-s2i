@@ -24,7 +24,7 @@ This script will be used to run the go application and will be set as the CMD fo
 #### usage (optional) 
 This script will print out instructions on how to use the image.
 
-##Making the builder image available 
+## Making the builder image available 
 To go from the Dockerfile and S2I scripts described above, to a builder image that can be used to transform our go source code into an application image the following steps need to be taken.
 
 * Make the builder image
@@ -33,12 +33,12 @@ To go from the Dockerfile and S2I scripts described above, to a builder image th
 
 Each these step has different alternative ways to be executed.
 
-###Making the builder image
+### Making the builder image
 To make the builder image, the Dockerfile must be processed.  Two options will be shown for this step:
 * Using podman or docker from an independent host
-* Running  _oc new-app_ in an Openshift cluster
+* Running  __oc new-app__ in an Openshift cluster
 
-####Using podman or docker
+#### Using podman or docker
 To create the builder image using podman or docker the requirements are: Having docker or podman installed in the host; and cloning the git repository containing the Dockerfile and s2i scripts:
 ```shell
 $ sudo yum install -y podman 
@@ -60,19 +60,19 @@ localhost/gobuilder                   latest   e583efd6a524   20 minutes ago   6
 ```
 This image is not accesible from Openshift, it needs to be pushed to a registry
 
-####Running _oc new-app_ in an Openshift cluster
-S2I supports the creation of container images from a Dockerfile stored in a git repository, therefore it is possible to use the _oc new-app_ command to create the builder image directly from Openshift.  The user running these commands does not require any special permissions in the cluster.
+#### Running __oc new-app__ in an Openshift cluster
+S2I supports the creation of container images from a Dockerfile stored in a git repository, therefore it is possible to use the __oc new-app__ command to create the builder image directly from Openshift.  The user running these commands does not require any special permissions in the cluster.
 The advantage of this method is that, along with the creation of the builder image, it will also be pushed to the internal Openshift registry and the image stream will be created, so the builder image will be ready to be used from the project where it was created.  If the builder image is to be used from other projects an additional configuration step is required.
-The small disadvantage of this method, is that the _oc new-app_ command will try to deploy a container based on the image just created, but since this image is not intended to be run standalone, the deployment will enter a _CrashLoopBackOff_ state and the deployment needs to be manually removed or scaled down to zero.  Also a service is created but is useless in this situation, so it needs to be removed as well.
+The small disadvantage of this method, is that the __oc new-app__ command will try to deploy a container based on the image just created, but since this image is not intended to be run standalone, the deployment will enter a _CrashLoopBackOff_ state and the deployment needs to be manually removed or scaled down to zero.  Also a service is created but is useless in this situation, so it needs to be removed as well.
 
 To run the following commands it is assumed that the user has an active session in an Openshift cluster:
-Create the project and run the _oc new-app_ command using the URL of the git repository and directory (context-dir) where the Dockerfile is stored:
+Create the project and run the __oc new-app__ command using the URL of the git repository and directory (context-dir) where the Dockerfile is stored:
 
 ```shell
 $ oc new-project simplebuildergo
 $ oc new-app --name gobuilder https://github.com/tale-toul/simple-web --context-dir go_builder_image
 ```
-The above _oc new-app_ command will return after a few seconds, but the build process will take a few minutes more to complete.  To follow the buil process run:
+The above __oc new-app__ command will return after a few seconds, but the build process will take a few minutes more to complete.  To follow the buil process run:
 
 ```shell
 $ oc logs -f bc/gobuilder
@@ -85,7 +85,7 @@ NAME                         READY   STATUS             RESTARTS   AGE
 gobuilder-1-build            0/1     Completed          0          6m48s
 gobuilder-7bf7dbf776-w7f2r   0/1     CrashLoopBackOff   3          2m21s
 ```
-Since this deployment and the service created by _oc new-app_ are of no use, they can be removed from the project. 
+Since this deployment and the service created by __oc new-app__ are of no use, they can be removed from the project. 
 
 ```shell
 $ oc status
@@ -107,17 +107,17 @@ $ oc delete service gobuilder
 service "gobuilder" deleted
 ```
 
-As a result of the _oc new-app_ command the builder image has been created, pushed to the Openshift internal registry and referenced by an image stream
+As a result of the __oc new-app__ command the builder image has been created, pushed to the Openshift internal registry and referenced by an image stream
 
 ```shell
 $ oc get imagestream gobuilder
 NAME        IMAGE REPOSITORY                                                                                           TAGS     UPDATED
 gobuilder   default-route-openshift-image-registry.apps.cartapacio.lab.pnq2.cee.redhat.com/simplebuildergo/gobuilder   latest   12 minutes ago
 ```
-###Pushing the builder image to a container registry
+### Pushing the builder image to a container registry
 In the case that the builder image was created with _podman_ or _docker_, or it needs to be available from an external registry, it has to be pushed to the external registry.  In the following example the registry is assumed to be private and needs authentication, both for pushing and pulling images.  Two different ways to push the image will be shown: using podmand (docker) and using skopeo:
 
-####Using podman or docker
+#### Using podman or docker
 The options for podman and docker are the same, however docker requires the docker daemon to be running, and podman requires the commands to be run as the root user:
 
 Tag the local image with the name of the registry and user:
@@ -136,7 +136,7 @@ Push the image to the registry:
 $ sudo podman push quay.io/milponta/gobuilder
 ```
 
-####Using skopeo
+#### Using skopeo
 The command line tool _skopeo_ can be used to push images to a registry, the advantage of this command is that with a single command it is possible to do the tagging, log in to the registry, and pushing the image:
 
 ```shell
@@ -147,14 +147,14 @@ If the registry server is using x509 certificates not know by the local system, 
 ```
 x509: certificate signed by unknown authority`
 ```
-In this case the option _--tls-verify=false_ can be used:
+In this case the option __--tls-verify=false__ can be used:
 
 ```shell
 $ sudo skopeo copy containers-storage:localhost/gobuilder docker://quay.io/milponta/gobuilder --dest-creds milponta:SuperSecretPass --dest-tls-verify=false
 ```
 
-###Creating the image stream in Openshift
-If the image was not build using _oc new-app_ or was pushed to an external registry, an image stream needs to be created.  The reason for this is that the S2I build process that creates the go application always takes the builder image from an image stream.  
+### Creating the image stream in Openshift
+If the image was not build using __oc new-app__ or was pushed to an external registry, an image stream needs to be created.  The reason for this is that the S2I build process that creates the go application always takes the builder image from an image stream.  
 
 If the image registry containing the builder image needs authentication to pull images, the first step is to create a secret containing the credentials to access the registry.  If the registry does not required authenticatino to pull images this step can be skipped.
 
@@ -164,7 +164,7 @@ $ oc create secret docker-registry extregistry --docker-server quay.io --docker-
 
 The image stream can be created in the same project where the application is to be deployed or it can be created in a common or shared project where other application projects can also use it.
 
-####Image stream on the application project
+#### Image stream on the application project
 In case the go application and the image stream will reside in the same project, create the image stream with the following command.  If the registry requires credentials, the command will look for a secret valid for the remote registry name:
 
 ```shell
@@ -178,8 +178,8 @@ Only if the external registry requires credentials to pull images, the _builder_
 $ oc secrets link builder extregistry --for pull,mount
 ```
 
-####Image stream on a common project
-If the image stream is created on a common project, from which other projects can use it, the _oc import-image_ command will include the option _--reference-policy=local_.  With this option there is need to share the secret or access credentials to the external registry with other projects, if credentials are required to pull images.  If the registry requires credentials, the command will look for a secret valid for the remote registry name:
+#### Image stream on a common project
+If the image stream is created on a common project, from which other projects can use it, the __oc import-image__ command will include the option _--reference-policy=local_.  With this option there is need to share the secret or access credentials to the external registry with other projects, if credentials are required to pull images.  If the registry requires credentials, the command will look for a secret valid for the remote registry name:
 
 ```shell
 $ oc import-image gobuilder --confirm --from quay.io/milponta/gobuilder --reference-policy=local
@@ -192,16 +192,16 @@ $ oc policy add-role-to-group system:image-puller system:serviceaccounts:simplew
 ```
 The above command grants permissions to pull images through the image stream in the project simplebuidergo, where the image stream was created, to all the service accounts in project simpleweb
 
-##Creating the application image
+## Creating the application image
 The application image combines the builder image with your applications source code, compiled using the *assemble* script, and run using the *run* script.
 
-The creation of the application image and its deployment can be acomplish with a single _oc new-app_:
+The creation of the application image and its deployment can be acomplish with a single __oc new-app__:
 
 If the image stream and the application are going to coexist in the same project:
 ```shell
 $ oc new-app --name simpleweb gobuilder~https://github.com/tale-toul/simple-web
 ```
-The `--name simpleweb` is used to assing a label `app=simpleweb` to the resources created by _oc new-app_
+The `--name simpleweb` is used to assing a label `app=simpleweb` to the resources created by __oc new-app__
 The builder image is specified by prefixing the git repository URL with `gobuilder~`
 
 If the image stream was created on a common project:
@@ -211,10 +211,10 @@ $ oc new-app --name simpleweb common/gobuilder~https://github.com/tale-toul/simp
 ```
 The name of project where the image stream was created is prefixed to the name of the image stream.
 
-##Final consideration
-The _oc new-app_ command creates a build config that will combine the builder image with the source code, compile the source code and create the application image.
-The _oc new-app_ command creates a deployment that will run the resulting application container based on the image created by the build config.
-The _oc new-app_ command creates a service resource to provide access to the application service running in the contianer.  The port where the service is listening for connections is obtained from the image definition, in particular from the EXPOSE directive and the label _io.openshift.expose-services_:
+## Final consideration
+The __oc new-app__ command creates a build config that will combine the builder image with the source code, compile the source code and create the application image.
+The __oc new-app__ command creates a deployment that will run the resulting application container based on the image created by the build config.
+The __oc new-app__ command creates a service resource to provide access to the application service running in the contianer.  The port where the service is listening for connections is obtained from the image definition, in particular from the EXPOSE directive and the label _io.openshift.expose-services_:
 
 ```
 ...
@@ -222,5 +222,3 @@ The _oc new-app_ command creates a service resource to provide access to the app
 ...
 EXPOSE 8080
 ```
-
-and the portthat will provide the service and the port that the container uses
