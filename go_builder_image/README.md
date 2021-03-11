@@ -212,9 +212,9 @@ $ oc new-app --name simpleweb common/gobuilder~https://github.com/tale-toul/simp
 The name of project where the image stream was created is prefixed to the name of the image stream.
 
 ## Final consideration
-The __oc new-app__ command creates a build config that will combine the builder image with the source code, compile the source code and create the application image.
-The __oc new-app__ command creates a deployment that will run the resulting application container based on the image created by the build config.
-The __oc new-app__ command creates a service resource to provide access to the application service running in the contianer.  The port where the service is listening for connections is obtained from the image definition, in particular from the EXPOSE directive and the label _io.openshift.expose-services_:
+* The __oc new-app__ command creates a build config that will combine the builder image with the source code, compile the source code and create the application image.
+* The __oc new-app__ command creates a deployment that will run the resulting application container based on the image created by the build config.
+* The __oc new-app__ command creates a service resource to provide access to the application service running in the contianer.  The port where the service is listening for connections is obtained from the image definition, in particular from the EXPOSE directive and the label _io.openshift.expose-services_:
 
 ```
 ...
