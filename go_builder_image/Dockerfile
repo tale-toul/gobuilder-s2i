@@ -5,8 +5,9 @@ ENV NAME=golang \
     VERSION=1.14 \
     ARCH=x86_64 \
     GOCACHE=/tmp/src \
-    GOPATH=/tmp/go \
-    APPROOT=$GOPATH/bin
+    GOPATH=/tmp/go 
+
+ENV APPROOT=$GOPATH/bin
 
 LABEL maintainer="Tale Toul <tale.toul@gmail.com>"
 
@@ -21,7 +22,9 @@ RUN yum install -y --disableplugin=subscription-manager --setopt=tsflags=nodocs 
 
 COPY ./s2i/bin/ /usr/libexec/s2i
 
-RUN chown -R 1001:0 /usr/libexec/s2i && \
+RUN echo "APPROOT=$APPROOT" && \
+    echo "GOPATH=$GOPATH" && \
+    chown -R 1001:0 /usr/libexec/s2i && \
     chmod -R +x /usr/libexec/s2i/. && \
     mkdir -p $GOPATH/src && \
     mkdir -p $APPROOT && \
