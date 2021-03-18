@@ -17,8 +17,11 @@ fi
 
 mv /tmp/src app-src
 pushd app-src
+
 go get -u -d -v ./...
 echo "---> Building application from source..."
+echo "GOPATH=$GOPATH"
+echo "APPROOT=$APPROOT"
 go build -v -x -o ${APPROOT}/gobinary
 
 popd 
