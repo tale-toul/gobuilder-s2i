@@ -16,7 +16,7 @@ LABEL io.k8s.description="Builer image for go" \
       io.openshift.s2i.scripts-url="image:///usr/libexec/s2i" \
       io.openshift.tags="builder,go,golang"
 
-RUN yum install -y --disableplugin=subscription-manager --setopt=tsflags=nodocs golang && \
+RUN yum install -y --disableplugin=subscription-manager --setopt=tsflags=nodocs golang git && \
     yum clean all -y --disableplugin=subscription-manager 
 
 COPY ./s2i/bin/ /usr/libexec/s2i
