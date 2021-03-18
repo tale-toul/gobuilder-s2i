@@ -19,6 +19,6 @@ mv /tmp/src app-src
 pushd app-src
 go get -u -d -v ./...
 echo "---> Building application from source..."
-go build -o ${APPROOT}/gobinary
+go build -v -x -o ${APPROOT}/gobinary
 
 popd 
