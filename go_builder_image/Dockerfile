@@ -22,9 +22,7 @@ RUN yum install -y --disableplugin=subscription-manager --setopt=tsflags=nodocs 
 
 COPY ./s2i/bin/ /usr/libexec/s2i
 
-RUN echo "APPROOT=$APPROOT" && \
-    echo "GOPATH=$GOPATH" && \
-    chown -R 1001:0 /usr/libexec/s2i && \
+RUN chown -R 1001:0 /usr/libexec/s2i && \
     chmod -R +x /usr/libexec/s2i/. && \
     mkdir -p $GOPATH/src && \
     mkdir -p $APPROOT && \
