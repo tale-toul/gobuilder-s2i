@@ -67,7 +67,11 @@ The advantage of this method is that, after the creation of the builder image, i
 
 When the __oc new-app__ command completes the builder image will be ready to be used from the project where it was created.  If the builder image is to be used from other projects an additional configuration step is required.
 
-The small disadvantage of this method, is that the __oc new-app__ command tries to deploy a container based on the image just created, but since this image is not intended to be run standalone, the deployment goes into a _CrashLoopBackOff_ state and the deployment needs to be manually removed or scaled down to zero.  Also a service is created but is useless in this situation, so it needs to be removed as well.
+The disadvantages of this method are:
+
+* The __oc new-app__ command tries to deploy a container based on the image just created, but since this image is not intended to be run standalone, the deployment goes into a _CrashLoopBackOff_ state and the deployment needs to be manually removed or scaled down to zero.  
+* A service is created but is useless because of the situation described in the previous point, so it needs to be removed as well.
+* Every time a new build is created, for example with the command __oc start-build__, all the steps in the Dockerfile are executed, unlike podman and docker, no image layers are cached for possible reuse in subsequent builds.  This results in longer build times.
 
 To run the following commands it is assumed that the user has an active session in an Openshift cluster.  Create the project and run the __oc new-app__ command using the URL of the git repository and directory (__context-dir__) where the Dockerfile is stored:
 
