@@ -25,48 +25,51 @@ This script will be used to run the go application and will be set as the CMD fo
 This script will print out instructions on how to use the image.
 
 ## Making the builder image available 
-To go from the Dockerfile and S2I scripts described above, to a builder image that can be used to transform our go source code into an application image the following steps need to be taken.
+To go from the Dockerfile and S2I scripts described above, to a builder image that can be used to transform go source code into an application image ready to run in Openshift, the following steps need to be taken:
 
 * Make the builder image
 * Push the builder image to a container registry
-* Create an image stream in Openshift referencing the builder image
+* Create an image stream inside an Openshift project referencing the builder image
 
-Each these step has different alternative ways to be executed.
+Each step has different alternative ways to be executed.
 
 ### Making the builder image
-To make the builder image, the Dockerfile must be processed.  Two options will be shown for this step:
+To make the builder image, the Dockerfile must be processed.  Two options will be shown here for this:
 * Using podman or docker from an independent host
 * Running  __oc new-app__ in an Openshift cluster
 
 #### Using podman or docker
-To create the builder image using podman or docker the requirements are: Having docker or podman installed in the host; and cloning the git repository containing the Dockerfile and s2i scripts:
+To create the builder image using podman or docker the requirements are: Having docker or podman installed in the host, and cloning the git repository containing the Dockerfile and s2i scripts:
 ```shell
 $ sudo yum install -y podman 
 $ git clone http://github.com/tale-toul/simple-web
 ```
 
-Enter the directory where the Dockerfile is located and run the build command.  Both docker and podman use the same options so it does not matter which one is used.  In the case of docker the docker daemon needs to be running, in the case of podman the commands must be run as the root user:
+Enter the directory where the Dockerfile is located and run the build command.  Both docker and podman use the same options so it doesn't matter which command is used.  In the case of docker the docker daemon needs to be running, in the case of podman the commands must be run as the root user:
 
 ```shell
 $ cd simple-web/go_builder_image/
 $ sudo podman build -t gobuilder .
 ```
-An image named _localhost/gobuilder_ with tag latest should be added to the host:
+An image named _localhost/gobuilder_ with tag latest should be added to the local image cache:
 
 ```shell
 $ sudo podman images
 REPOSITORY                            TAG      IMAGE ID       CREATED          SIZE
 localhost/gobuilder                   latest   e583efd6a524   20 minutes ago   671 MB
 ```
-This image is not accesible from Openshift, it needs to be pushed to a registry
+This image is not accesible from Openshift, and therefore cannot be used as a builder image yet, it needs to be pushed to a registry.
 
-#### Running __oc new-app__ in an Openshift cluster
-S2I supports the creation of container images from a Dockerfile stored in a git repository, therefore it is possible to use the __oc new-app__ command to create the builder image directly from Openshift.  The user running these commands does not require any special permissions in the cluster.
-The advantage of this method is that, along with the creation of the builder image, it will also be pushed to the internal Openshift registry and the image stream will be created, so the builder image will be ready to be used from the project where it was created.  If the builder image is to be used from other projects an additional configuration step is required.
-The small disadvantage of this method, is that the __oc new-app__ command will try to deploy a container based on the image just created, but since this image is not intended to be run standalone, the deployment will enter a _CrashLoopBackOff_ state and the deployment needs to be manually removed or scaled down to zero.  Also a service is created but is useless in this situation, so it needs to be removed as well.
+#### Running 'oc new-app' in an Openshift cluster
+S2I supports the creation of container images from a _Dockerfile_ stored in a git repository, therefore it is possible to use the __oc new-app__ command to create the builder image directly from Openshift.  The user running these commands does not require any special permissions in the cluster.
 
-To run the following commands it is assumed that the user has an active session in an Openshift cluster:
-Create the project and run the __oc new-app__ command using the URL of the git repository and directory (context-dir) where the Dockerfile is stored:
+The advantage of this method is that, after the creation of the builder image, it will be pushed to the internal Openshift registry, and the image stream will be created in the current project.  
+
+When the __oc new-app__ command completes the builder image will be ready to be used from the project where it was created.  If the builder image is to be used from other projects an additional configuration step is required.
+
+The small disadvantage of this method, is that the __oc new-app__ command tries to deploy a container based on the image just created, but since this image is not intended to be run standalone, the deployment goes into a _CrashLoopBackOff_ state and the deployment needs to be manually removed or scaled down to zero.  Also a service is created but is useless in this situation, so it needs to be removed as well.
+
+To run the following commands it is assumed that the user has an active session in an Openshift cluster.  Create the project and run the __oc new-app__ command using the URL of the git repository and directory (__context-dir__) where the Dockerfile is stored:
 
 ```shell
 $ oc new-project simplebuildergo
@@ -77,7 +80,7 @@ The above __oc new-app__ command will return after a few seconds, but the build 
 ```shell
 $ oc logs -f bc/gobuilder
 ```
-When the build process finishes with the message `Push successful` a deployment is triggered, but as stated before, this will fail.  
+When the build process finishes with the message `Push successful` a deployment is triggered, but as mentioned before, it will eventually fail.  
 
 ```shell
 $ oc get pods
@@ -107,7 +110,7 @@ $ oc delete service gobuilder
 service "gobuilder" deleted
 ```
 
-As a result of the __oc new-app__ command the builder image has been created, pushed to the Openshift internal registry and referenced by an image stream
+As a result of the previous __oc new-app__ command, the builder image has been created, pushed to the Openshift internal registry and referenced by an image stream in the current project.
 
 ```shell
 $ oc get imagestream gobuilder
