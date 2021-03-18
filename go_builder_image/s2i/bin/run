@@ -8,4 +8,4 @@
 #
 set -e
  
-exec /opt/app-root/gobinary
+exec ${APPROOT}/gobinary

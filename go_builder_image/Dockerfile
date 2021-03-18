@@ -5,7 +5,8 @@ ENV NAME=golang \
     VERSION=1.14 \
     ARCH=x86_64 \
     GOCACHE=/tmp/src \
-    APPROOT=/opt/app-root
+    GOPATH=/tmp/go \
+    APPROOT=$GOPATH/bin
 
 LABEL maintainer="Tale Toul <tale.toul@gmail.com>"
 
@@ -22,13 +23,14 @@ COPY ./s2i/bin/ /usr/libexec/s2i
 
 RUN chown -R 1001:0 /usr/libexec/s2i && \
     chmod -R +x /usr/libexec/s2i/. && \
+    mkdir -p $GOPATH/src && \
     mkdir -p $APPROOT && \
-    chown -R 1001:0 $APPROOT && \
-    chmod -R g=u $APPROOT
+    chown -R 1001:0 $GOPATH $APPROOT && \
+    chmod -R g=u $GOPATH $APPROOT
 
 USER 1001
 
-WORKDIR $APPROOT
+WORKDIR $GOPATH/src
 
 EXPOSE 8080
 
