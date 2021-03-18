@@ -24,7 +24,7 @@ This script will be used to run the go application and will be set as the CMD fo
 #### usage (optional) 
 This script will print out instructions on how to use the image.
 
-## Making the builder image available 
+## Getting the builder ready for use
 To go from the Dockerfile and S2I scripts described above, to a builder image that can be used to transform go source code into an application image ready to run in Openshift, the following steps need to be taken:
 
 * Make the builder image
@@ -167,7 +167,7 @@ $ oc create secret docker-registry extregistry --docker-server quay.io --docker-
 
 The image stream can be created in the same project where the application is to be deployed or it can be created in a common or shared project where other application projects can also use it.
 
-#### Image stream on the application project
+#### On the application project
 In case the go application and the image stream will reside in the same project, create the image stream with the following command.  If the registry requires credentials, the command will look for a secret valid for the remote registry name:
 
 ```shell
@@ -181,7 +181,7 @@ Only if the external registry requires credentials to pull images, the _builder_
 $ oc secrets link builder extregistry --for pull,mount
 ```
 
-#### Image stream on a common project
+#### On a common project
 If the image stream is created on a common project, from which other projects can use it, the __oc import-image__ command will include the option _--reference-policy=local_.  With this option there is need to share the secret or access credentials to the external registry with other projects, if credentials are required to pull images.  If the registry requires credentials, the command will look for a secret valid for the remote registry name:
 
 ```shell
