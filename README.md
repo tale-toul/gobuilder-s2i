@@ -1,3 +1,29 @@
+# S2I builder image for golang
+
+## Motivation
+Openshift 4 includes a golang builder image that can be use in an [S2I](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) process with go source code.  Using the __oc new-app__ command it is possible to go from source code to a running container in a matter of minutes, and with just one command.
+
+```shell
+$ oc new-project s2i-go
+$ oc new-app --name testero golang~https://github.com/tale-toul/testero 
+```
+However this golang builder image has a couple drawbacks:
+* The size of the image is quite big:
+ 
+```shell
+$ oc describe istag golang:latest -n openshift|grep Size
+Image Size:     848.7MB in 5 layers
+```
+* The image does not expose any network ports, so the __oc new-app__ command will not create a service, and the deployment and pod resource definitions will not include any port reference, even if the application opens and listens on a port.  The application network ports can still be used, but the configuration must be done manually, and the port numbers and protocols must be known to the administrator.
+
+```shell
+$ oc describe istag golang:latest -n openshift|grep -i expose
+Exposes Ports:  <none>
+```
+In addition to the previous points, the included golang image may not work with every go source code project.
+
+Creating your own go s2i builder image can greatly improve the situation while maintaining the benefits of s2i.  The process of [creating the builder image](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) is relatively simple and the result can be an image that only contains the components needed for the project, reducing its size considerably; that exposes the ports required by the project; and that can produce a valid application image.
+
 # Creating the go builder image
 
 ## Files and Directories  
