@@ -24,8 +24,16 @@ In addition to the previous points, the included golang image may not work with 
 
 Creating your own go s2i builder image can greatly improve the situation while maintaining the benefits of s2i.  The process of [creating the builder image](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) is relatively simple and the result can be an image that only contains the components needed for the project, reducing its size considerably; that exposes the ports required by the project; and that can produce a valid application image.
 
-##S2i versus CI/CD tools
+## S2i versus CI/CD tools
+S2i is readily availabe in Openshift, in particular it does not require the installation of any additional components in the Openshift cluster; on the developer workstation the only requirements are: the _oc_ cli and podman or docker, and even these last ones are not strictly required. 
+S2I is very simple to use, to fully deploy most applications a single __oc new-app__ commmand is enough, while the final step of creating the external route is left out, for security reasons, not all applications are meant to be made public.
+The S2I process consumes few resourcesa, mostly the builder container based on the builder image, building the source code, and later the deployment process deploying the application. 
+For all the above reasons, S2I fits very well for simple use cases and developer workstations.
 
+On the other hand, S2I lacks many of the features of any traditional CI/CD system.
+When using S2I, since the builder image, the source code and the binary application are combined together, the resulting application image will contain the whole development toolset, and the application source code, which may be a security risk, and a waste of space.  The resulting image is much bigger than need be, consuming more storage resources and taking more time to deploy containers based on it, if the pod is deployed on a host that needs to pull the image.  A traditional CI/CD system cand build the application and create a new image containing only the necessary elements to run the application.  
+
+However the CI/CD system requires the installation of additional componentsis, a complex configuration, and consumes a significat ammount of resources.  Making the deployment of such system a complex and time consuming task, even for simple use cases.
 
 ## Files and Directories for the builder image 
 | File                   | Required? | Description                                                  |
