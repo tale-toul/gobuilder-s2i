@@ -26,7 +26,7 @@ Creating your own go s2i builder image can greatly improve the situation while m
 
 ## S2i versus CI/CD tools
 S2i is readily availabe in Openshift, in particular it does not require the installation of any additional components in the Openshift cluster; on the developer workstation the only requirements are: the _oc_ cli and podman or docker, and even these last ones are not strictly required. 
-S2I is very simple to use, to fully deploy most applications a single __oc new-app__ commmand is enough, while the final step of creating the external route is left out, for security reasons, not all applications are meant to be made public.
+S2I is very simple to use, to fully deploy most applications a single `oc new-app` commmand is enough, while the final step of creating the external route is left out, for security reasons, not all applications are meant to be made public.
 The S2I process consumes few resourcesa, mostly the builder container based on the builder image, building the source code, and later the deployment process deploying the application. 
 For all the above reasons, S2I fits very well for simple use cases and developer workstations.
 
