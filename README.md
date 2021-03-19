@@ -1,7 +1,7 @@
 # S2I builder image for golang
 
 ## Motivation
-Openshift 4 includes a golang builder image that can be use in an [S2I](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) process with go source code.  Using the __oc new-app__ command it is possible to go from source code to a running container in a matter of minutes, and with just one command.
+Openshift 4 includes a golang builder image that can be use in an [S2I](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) process with go source code.  Using the `oc new-app` command it is possible to go from source code to a running container in a matter of minutes, and with just one command.
 
 ```shell
 $ oc new-project s2i-go
@@ -14,7 +14,7 @@ However this golang builder image has a couple drawbacks:
 $ oc describe istag golang:latest -n openshift|grep Size
 Image Size:     848.7MB in 5 layers
 ```
-* The image does not expose any network ports, so the __oc new-app__ command will not create a service, and the deployment and pod resource definitions will not include any port reference, even if the application opens and listens on a port.  The application network ports can still be used, but the configuration must be done manually, and the port numbers and protocols must be known to the administrator.
+* The image does not expose any network ports, so the `oc new-app` command will not create a service, and the deployment and pod resource definitions will not include any port reference, even if the application opens and listens on a port.  The application network ports can still be used, but the configuration must be done manually, and the port numbers and protocols must be known to the administrator.
 
 ```shell
 $ oc describe istag golang:latest -n openshift|grep -i expose
@@ -24,9 +24,9 @@ In addition to the previous points, the included golang image may not work with 
 
 Creating your own go s2i builder image can greatly improve the situation while maintaining the benefits of s2i.  The process of [creating the builder image](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) is relatively simple and the result can be an image that only contains the components needed for the project, reducing its size considerably; that exposes the ports required by the project; and that can produce a valid application image.
 
-## S2i versus CI/CD tools
+## S2I versus CI/CD tools
 S2i is readily availabe in Openshift, in particular it does not require the installation of any additional components in the Openshift cluster; on the developer workstation the only requirements are: the _oc_ cli and podman or docker, and even these last ones are not strictly required. 
-S2I is very simple to use, to fully deploy most applications a single `oc new-app` commmand is enough, while the final step of creating the external route is left out, for security reasons, not all applications are meant to be made public.
+S2I is very simple to use, to fully deploy most applications a single `oc new-app` command is enough, while the final step of creating the external route is left out, for security reasons, not all applications are meant to be made public.
 The S2I process consumes few resourcesa, mostly the builder container based on the builder image, building the source code, and later the deployment process deploying the application. 
 For all the above reasons, S2I fits very well for simple use cases and developer workstations.
 
@@ -91,7 +91,7 @@ The workdir is defined
 ```
 WORKDIR $GOPATH/src
 ```
-The port where the go application provides its services is defined. This information is used by __oc new-app__ to create a service:
+The port where the go application provides its services is defined. This information is used by `oc new-app` to create a service:
 ```
 EXPOSE 8080
 ```
@@ -155,7 +155,7 @@ Each step has different alternative ways to be executed as will be explained in 
 ### Making the builder image
 To make the builder image, the Dockerfile must be processed.  Two options will be shown here to do this:
 * Running podman or docker in a host
-* Running  __oc new-app__ in an Openshift cluster
+* Running  `oc new-app` in an Openshift cluster
 
 #### Using podman or docker
 To create the builder image using podman or docker the requirements are: Having docker or podman installed in the host, and cloning the git repository containing the Dockerfile and s2i scripts:
@@ -180,25 +180,25 @@ localhost/gobuilder                   latest   e583efd6a524   20 minutes ago   6
 This image is not accesible from Openshift, and therefore cannot be used as a builder image yet, it needs to be pushed to a registry.
 
 #### Running 'oc new-app' in an Openshift cluster
-S2I supports the creation of container images from a _Dockerfile_ stored in a git repository, therefore it is possible to use the __oc new-app__ command to create the builder image directly from Openshift.  The user running these commands does not require any special permissions in the cluster.
+S2I supports the creation of container images from a _Dockerfile_ stored in a git repository, therefore it is possible to use the `oc new-app` command to create the builder image directly from Openshift.  The user running these commands does not require any special permissions in the cluster.
 
 The advantage of this method is that, after the creation of the builder image, it will be pushed to the internal Openshift registry, and the image stream will be created in the current project.  
 
-When the __oc new-app__ command completes the builder image will be ready to be used from the project where it was created.  If the builder image is to be used from other projects an additional configuration step is required.
+When the `oc new-app` command completes the builder image will be ready to be used from the project where it was created.  If the builder image is to be used from other projects an additional configuration step is required.
 
 The disadvantages of this method are:
 
-* The __oc new-app__ command tries to deploy a container based on the image just created, but since this image is not intended to be run standalone, the deployment goes into a _CrashLoopBackOff_ state and the deployment needs to be manually removed or scaled down to zero.  
+* The `oc new-app` command tries to deploy a container based on the image just created, but since this image is not intended to be run standalone, the deployment goes into a _CrashLoopBackOff_ state and the deployment needs to be manually removed or scaled down to zero.  
 * A service is created but is useless because of the situation described in the previous point, so it needs to be removed as well.
 * Every time a new build is created, for example with the command __oc start-build__, all the steps in the Dockerfile are executed, unlike podman and docker, no image layers are cached for possible reuse in subsequent builds.  This results in longer build times.
 
-To run the following commands it is assumed that the user has an active session in an Openshift cluster.  Create the project and run the __oc new-app__ command using the URL of the git repository and directory (__context-dir__) where the Dockerfile is stored:
+To run the following commands it is assumed that the user has an active session in an Openshift cluster.  Create the project and run the `oc new-app` command using the URL of the git repository and directory (__context-dir__) where the Dockerfile is stored:
 
 ```shell
 $ oc new-project simplebuildergo
 $ oc new-app --name gobuilder https://github.com/tale-toul/simple-web --context-dir go_builder_image
 ```
-The above __oc new-app__ command will return after a few seconds, but the build process will take a few minutes more to complete.  To follow the buil process run:
+The above `oc new-app` command will return after a few seconds, but the build process will take a few minutes more to complete.  To follow the buil process run:
 
 ```shell
 $ oc logs -f bc/gobuilder
@@ -211,7 +211,7 @@ NAME                         READY   STATUS             RESTARTS   AGE
 gobuilder-1-build            0/1     Completed          0          6m48s
 gobuilder-7bf7dbf776-w7f2r   0/1     CrashLoopBackOff   3          2m21s
 ```
-Since this deployment and the service created by __oc new-app__ are of no use, they can be removed from the project. 
+Since this deployment and the service created by `oc new-app` are of no use, they can be removed from the project. 
 
 ```shell
 $ oc status
@@ -233,7 +233,7 @@ $ oc delete service gobuilder
 service "gobuilder" deleted
 ```
 
-As a result of the previous __oc new-app__ command, the builder image has been created, pushed to the Openshift internal registry and referenced by an image stream in the current project.
+As a result of the previous `oc new-app` command, the builder image has been created, pushed to the Openshift internal registry and referenced by an image stream in the current project.
 
 ```shell
 $ oc get imagestream gobuilder
@@ -280,7 +280,7 @@ $ sudo skopeo copy containers-storage:localhost/gobuilder docker://quay.io/milpo
 ```
 
 ### Creating the image stream in Openshift
-If the image was not build using __oc new-app__ or was pushed to an external registry, an image stream needs to be created.  The reason for this is that the S2I build process that creates the go application always takes the builder image from an image stream.  
+If the image was not build using `oc new-app` or was pushed to an external registry, an image stream needs to be created.  The reason for this is that the S2I build process that creates the go application always takes the builder image from an image stream.  
 
 If the image registry containing the builder image needs authentication to pull images, the first step is to create a secret containing the credentials to access the registry.  If the registry does not required authenticatino to pull images this step can be skipped.
 
@@ -321,13 +321,13 @@ The above command grants permissions to pull images through the image stream in 
 ## Creating the application image
 The application image combines the builder image with your applications source code, compiled using the *assemble* script, and run using the *run* script.
 
-The creation of the application image and its deployment can be acomplish with a single __oc new-app__:
+The creation of the application image and its deployment can be acomplish with a single `oc new-app`:
 
 If the image stream and the application are going to coexist in the same project:
 ```shell
 $ oc new-app --name simpleweb gobuilder~https://github.com/tale-toul/simple-web
 ```
-The `--name simpleweb` is used to assing a label `app=simpleweb` to the resources created by __oc new-app__
+The `--name simpleweb` is used to assing a label `app=simpleweb` to the resources created by `oc new-app`
 The builder image is specified by prefixing the git repository URL with `gobuilder~`
 
 If the image stream was created on a common project:
@@ -338,9 +338,9 @@ $ oc new-app --name simpleweb common/gobuilder~https://github.com/tale-toul/simp
 The name of project where the image stream was created is prefixed to the name of the image stream.
 
 ## Final consideration
-* The __oc new-app__ command creates a build config that will combine the builder image with the source code, compile the source code and create the application image.
-* The __oc new-app__ command creates a deployment that will run the resulting application container based on the image created by the build config.
-* The __oc new-app__ command creates a service resource to provide access to the application service running in the contianer.  The port where the service is listening for connections is obtained from the image definition, in particular from the EXPOSE directive and the label _io.openshift.expose-services_:
+* The `oc new-app` command creates a build config that will combine the builder image with the source code, compile the source code and create the application image.
+* The `oc new-app` command creates a deployment that will run the resulting application container based on the image created by the build config.
+* The `oc new-app` command creates a service resource to provide access to the application service running in the contianer.  The port where the service is listening for connections is obtained from the image definition, in particular from the EXPOSE directive and the label _io.openshift.expose-services_:
 
 ```
 ...
