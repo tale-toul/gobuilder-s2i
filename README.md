@@ -24,9 +24,10 @@ In addition to the previous points, the included golang image may not work with 
 
 Creating your own go s2i builder image can greatly improve the situation while maintaining the benefits of s2i.  The process of [creating the builder image](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) is relatively simple and the result can be an image that only contains the components needed for the project, reducing its size considerably; that exposes the ports required by the project; and that can produce a valid application image.
 
-# Creating the go builder image
+##S2i versus CI/CD tools
 
-## Files and Directories  
+
+## Files and Directories for the builder image 
 | File                   | Required? | Description                                                  |
 |------------------------|-----------|--------------------------------------------------------------|
 | Dockerfile             | Yes       | Defines the base builder image                               |
@@ -35,9 +36,59 @@ Creating your own go s2i builder image can greatly improve the situation while m
 | s2i/bin/run            | Yes       | Script that runs the application                             |
 
 ### Dockerfile
-Use this file to create the container image that can be used as _builder image_ for source to image (S2I) build strategy in OpenShift, to create applications images from go source code.
+This is the file describing how to create the builder image.  It needs to include all the components needed to build the go applications. By limiting the components installed, the size of the image can be reduced considerably in comparison to the golang image included with Openshift.
 
-The Dockerfile contains instructions to install all of the necessary tools and libraries that are needed to build and run the go application.  This file will also handle copying the s2i scripts into the created image.
+In this case the image is base on an ubi8 image:
+```
+FROM registry.access.redhat.com/ubi8:8.3
+```
+Some variables are defined to be used during the building of the image, and later will also be availabe in the containers created from the resulting image.  
+GOPATH and GOCACHE are used by the go tools, APPROOT is defined as the directory where to install the binary application, APPROOT needs to be defined in a separate ENV directive because it uses a previouly defined variable (GOPATH).
+```
+ENV ...
+    GOCACHE=/tmp/src \
+    GOPATH=/tmp/go 
+ENV APPROOT=$GOPATH/bin
+```
+Some labels are defined to provide information to Openshift on some aspects of the image, like the network ports is exposes and the location of the s2i scripts.
+```
+LABEL ...
+      io.openshift.expose-services="8080:http" \
+      io.openshift.s2i.scripts-url="image:///usr/libexec/s2i" \
+      io.openshift.tags="builder,go,golang"
+```
+The packages required to build go source code are installed
+```
+RUN yum install -y --disableplugin=subscription-manager --setopt=tsflags=nodocs golang git && \
+    yum clean all -y --disableplugin=subscription-manager 
+```
+The s2i scripts are copied on the same directory defined for the label _io.openshift.s2i.scripts-url_.  More on these scripts later.
+```
+COPY ./s2i/bin/ /usr/libexec/s2i
+```
+The containers based on the go builder image, run, inside Openshift, using random unprivileged users so the directories used by the S2I process must be set accordingly. The 1001 user id is irrelevant, and not guarrantied to be the actual user id used by the containers based on this image.  
+The important part here is the group 0.  This is actually a __non privileged__ group, and the container is guarrantied to run using this group id when created inside Openshift. 
+```
+RUN chown -R 1001:0 /usr/libexec/s2i && \
+    chmod -R +x /usr/libexec/s2i/. && \
+    mkdir -p $GOPATH/src && \
+    mkdir -p $APPROOT && \
+    chown -R 1001:0 $GOPATH $APPROOT && \
+    chmod -R g=u $GOPATH $APPROOT
+USER 1001
+```
+The workdir is defined 
+```
+WORKDIR $GOPATH/src
+```
+The port where the go application provides its services is defined. This information is used by __oc new-app__ to create a service:
+```
+EXPOSE 8080
+```
+The starting command for any container based on this image is set to the usage script.  This script simply prints and usage message.  The builder image is not intended to be used on its own that is why its starting command does not do anything useful
+```
+CMD ["/usr/libexec/s2i/usage"]
+```
 
 ### S2I scripts
 
