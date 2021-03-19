@@ -36,9 +36,11 @@ Creating your own go s2i builder image can greatly improve the situation while m
 | s2i/bin/run            | Yes       | Script that runs the application                             |
 
 ### Dockerfile
-This is the file describing how to create the builder image.  It needs to include all the components needed to build the go applications. By limiting the components installed, the size of the image can be reduced considerably in comparison to the golang image included with Openshift.
+The Dockerfile file contains the instructions describing how to create the builder image.  It needs to include all the components needed to build the go applications from source code. By limiting the components installed to only those required, the size of the image can be reduced considerably in comparison to the golang image included with Openshift.
 
-In this case the image is base on an ubi8 image:
+The Dockerfile included in this repository is made up of the following steps:
+
+The image is base on an ubi8 image:
 ```
 FROM registry.access.redhat.com/ubi8:8.3
 ```
@@ -57,12 +59,12 @@ LABEL ...
       io.openshift.s2i.scripts-url="image:///usr/libexec/s2i" \
       io.openshift.tags="builder,go,golang"
 ```
-The packages required to build go source code are installed
+The packages required to build go source code are installed, both golang and git have many dependencies that will also be installed.
 ```
 RUN yum install -y --disableplugin=subscription-manager --setopt=tsflags=nodocs golang git && \
     yum clean all -y --disableplugin=subscription-manager 
 ```
-The s2i scripts are copied on the same directory defined for the label _io.openshift.s2i.scripts-url_.  More on these scripts later.
+The s2i scripts are copied on the same directory that was defined for the label _io.openshift.s2i.scripts-url_.  More on these scripts later.
 ```
 COPY ./s2i/bin/ /usr/libexec/s2i
 ```
@@ -91,28 +93,60 @@ CMD ["/usr/libexec/s2i/usage"]
 ```
 
 ### S2I scripts
+The assemble, run, save-artifacts and usage scripts must be present in the builder image at the directory specified by the label __io.openshift.s2i.scripts-url__, usually /usr/libexec/s2i.  The assemble and run scripts are required, save-artifacts and usage are not.  In this repository the save-artifacts is not used.
+
+As seen in the previous section, the scripts are copied from the s2i/bin directory to /usr/libexec/s2i, for example the assemble script is at /usr/libexec/s2i/assemble.  
 
 #### assemble
 This script is run during the S2I build process and is responsible for the actual building of the go application 
+In this repo this script is very simple.
+
+This script is run from the directory defined with the  _WORDIR_ directive in the Dockerfile, which is /tmp/go/src.
+
+* First, the directory with the source code cloned from the git repository, that the S2I process copies to /tmp/src, is moved and renamed to app-src, which actually is /tmp/go/src/app-src
+```shell
+mv /tmp/src app-src
+...
+* Next the the working directory is changed to app-src
+```shell
+pushd app-src
+...
+* Then the packages required by the source code, if any, are downloaded and stored where the go tools can access them, $GOPATH/src.
+```shell
+go get -u -d -v ./...
+```
+* Next the application source code is built in verbose mode, and the resultin executable file called gobinary is placed at /tmp/go/bin/gobinary.  
+```shell
+go build -v -x -o ${APPROOT}/gobinary
+```
+* Finally the working directory is changed back to what it was before
+
+```shell
+popd 
+```
 
 #### run
 This script will be used to run the go application and will be set as the CMD for the resulting application image.  To make sure that signals are correctly propagated to the container, the application should be started using the __exec__ command.
 
+```shell
+exec ${APPROOT}/gobinary
+```
 #### usage (optional) 
 This script will print out instructions on how to use the image.
+The _usage_ script is not required, but as the builder image itself is not intended to be used as an standalone container, it is convenient to set the usage script as the default command for this image so that any attempt to run a pod based on the builder image will send a message to stardard output, and the pod will enter a state of CrashLoopBackOff.
 
-## Getting the builder ready for use
+## Getting the builder image ready for use
 To go from the Dockerfile and S2I scripts described above, to a builder image that can be used to transform go source code into an application image ready to run in Openshift, the following steps need to be taken:
 
 * Make the builder image
 * Push the builder image to a container registry
 * Create an image stream inside an Openshift project referencing the builder image
 
-Each step has different alternative ways to be executed.
+Each step has different alternative ways to be executed as will be explained in the following sections.
 
 ### Making the builder image
-To make the builder image, the Dockerfile must be processed.  Two options will be shown here for this:
-* Using podman or docker from an independent host
+To make the builder image, the Dockerfile must be processed.  Two options will be shown here to do this:
+* Running podman or docker in a host
 * Running  __oc new-app__ in an Openshift cluster
 
 #### Using podman or docker
