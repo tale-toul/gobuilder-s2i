@@ -106,7 +106,7 @@ This script is run from the directory defined with the  _WORDIR_ directive in th
 * First, the directory with the source code cloned from the git repository, that the S2I process copies to /tmp/src, is moved and renamed to app-src, which actually is /tmp/go/src/app-src
 ```shell
 mv /tmp/src app-src
-...
+```
 * Next the the working directory is changed to app-src
 ```shell
 pushd app-src
