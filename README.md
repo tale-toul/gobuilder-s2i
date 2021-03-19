@@ -110,7 +110,7 @@ mv /tmp/src app-src
 * Next the the working directory is changed to app-src
 ```shell
 pushd app-src
-...
+```
 * Then the packages required by the source code, if any, are downloaded and stored where the go tools can access them, $GOPATH/src.
 ```shell
 go get -u -d -v ./...
