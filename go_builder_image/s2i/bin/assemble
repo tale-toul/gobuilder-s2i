@@ -20,6 +20,8 @@ pushd app-src
 
 echo "git log --oneline --decorate --all"
 git log --oneline --decorate --all
+echo "git branch"
+git branch
 
 go get -u -d -v ./...
 echo "---> Building application from source..."
