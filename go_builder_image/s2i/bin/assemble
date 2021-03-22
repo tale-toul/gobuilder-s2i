@@ -18,6 +18,9 @@ fi
 mv /tmp/src app-src
 pushd app-src
 
+echo "git log --oneline --decorate --all"
+git log --oneline --decorate --all
+
 go get -u -d -v ./...
 echo "---> Building application from source..."
 go build -v -x -o ${APPROOT}/gobinary
