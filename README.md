@@ -25,7 +25,7 @@ In addition to the previous points, the included golang image may not work with 
 Creating your own go s2i builder image can greatly improve the situation while maintaining the benefits of s2i.  The process of [creating the builder image](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) is relatively simple and the result can be an image that only contains the components needed for the project, reducing its size considerably; that exposes the ports required by the project; and that can produce a valid application image.
 
 ## S2I versus CI/CD tools
-S2i is readily availabe in Openshift, in particular it does not require the installation of any additional components in the Openshift cluster; on the developer workstation the only requirements are: the _oc_ cli and podman or docker, and even these last ones are not strictly required. 
+S2i is readily availabe in Openshift, in particular it does not require the installation of any additional components in the cluster; on the developer workstation the only requirements are: the _oc_ cli and podman or docker, and even these last ones are not strictly required. 
 S2I is very simple to use, to fully deploy most applications a single `oc new-app` command is enough, while the final step of creating the external route is left out, for security reasons, not all applications are meant to be made public.
 The S2I process consumes few resourcesa, mostly the builder container based on the builder image, building the source code, and later the deployment process deploying the application. 
 For all the above reasons, S2I fits very well for simple use cases and developer workstations.
@@ -123,6 +123,7 @@ pushd app-src
 ```shell
 go get -u -d -v ./...
 ```
+Unfortunately this does not work if the _go_ source code belongs to a non default branch in the repository.  If a specific branch is used with __oc new-app gobuilder~https://github.com/user/repo/code#branch__ command, that branch must be set as default in the git repository.
 * Next the application source code is built in verbose mode, and the resultin executable file called gobinary is placed at /tmp/go/bin/gobinary.  
 ```shell
 go build -v -x -o ${APPROOT}/gobinary
