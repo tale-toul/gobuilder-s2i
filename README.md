@@ -1,20 +1,20 @@
 # S2I builder image for golang
 
 ## Motivation
-Openshift 4 includes a golang builder image that can be use in an [S2I](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) process with go source code.  Using the `oc new-app` command it is possible to go from source code to a running container in a matter of minutes, and with just one command.
+Openshift 4 includes a golang builder image that can be used in an [S2I](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) process to deploy a pod from go source code using the `oc new-app` command, in a few minutes and with just one command:
 
 ```shell
 $ oc new-project s2i-go
 $ oc new-app --name testero golang~https://github.com/tale-toul/testero 
 ```
-However this golang builder image has a couple drawbacks:
+However the included golang builder image has a couple drawbacks:
 * The size of the image is quite big:
  
 ```shell
 $ oc describe istag golang:latest -n openshift|grep Size
 Image Size:     848.7MB in 5 layers
 ```
-* The image does not expose any network ports, so the `oc new-app` command will not create a service, and the deployment and pod resource definitions will not include any port reference, even if the application opens and listens on a port.  The application network ports can still be used, but the configuration must be done manually, and the port numbers and protocols must be known to the administrator.
+* The image does not expose any network ports, so the `oc new-app` command will not create a service, and the deployment and pod resource definitions will not include any port reference, even if the application listens on a port.  The application network ports can still be used but the configuration must be done manually, and the port numbers and protocols must be known to the administrator.
 
 ```shell
 $ oc describe istag golang:latest -n openshift|grep -i expose
