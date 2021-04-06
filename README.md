@@ -195,9 +195,9 @@ The disadvantages of this method are:
 
 To run the following commands it is assumed that the user has an active session in an Openshift cluster.  Create the project and run the `oc new-app` command using the URL of the git repository and directory (__context-dir__) where the Dockerfile is stored:
 
-```shell
+```
 $ oc new-project simplebuildergo
-$ oc new-app --name gobuilder https://github.com/tale-toul/simple-web --context-dir go_builder_image
+$ oc new-app --name gobuilder https://github.com/tale-toul/gobuilder-s2i --context-dir go_builder_image
 ```
 The above `oc new-app` command will return after a few seconds, but the build process will take a few minutes more to complete.  To follow the buil process run:
 
@@ -242,7 +242,9 @@ NAME        IMAGE REPOSITORY                                                    
 gobuilder   default-route-openshift-image-registry.apps.cartapacio.lab.pnq2.cee.redhat.com/simplebuildergo/gobuilder   latest   12 minutes ago
 ```
 ### Pushing the builder image to a container registry
-In the case that the builder image was created with _podman_ or _docker_, or it needs to be available from an external registry, it has to be pushed to the external registry.  In the following example the registry is assumed to be private and needs authentication, both for pushing and pulling images.  Two different ways to push the image will be shown: using podmand (docker) and using skopeo:
+In the case that the builder image was created with _podman_ or _docker_, or was created with __oc new-app__ and needs to be available from an external registry, it has to be pushed to the external registry.  In the following example the registry is assumed to be private and needs authentication, both for pushing and pulling images.  Two different ways to push the image will be shown: using podmand (docker) and using skopeo.  
+
+The following commands must be executed in a host where the image is present in the image local cache
 
 #### Using podman or docker
 The options for podman and docker are the same, however docker requires the docker daemon to be running, and podman requires the commands to be run as the root user:
