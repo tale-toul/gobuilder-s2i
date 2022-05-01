@@ -23,6 +23,7 @@ git log --oneline --decorate --all
 echo "git branch"
 git branch
 
+go mod init
 go get -u -d -v ./...
 echo "---> Building application from source..."
 go build -v -x -o ${APPROOT}/gobinary
