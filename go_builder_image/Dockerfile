@@ -1,8 +1,8 @@
 # Go builder image for Openshift s2i
-FROM registry.access.redhat.com/ubi8:8.3
+FROM registry.access.redhat.com/ubi8:8.5
 
 ENV NAME=golang \
-    VERSION=1.14 \
+    VERSION=1.16 \
     ARCH=x86_64 \
     GOCACHE=/tmp/src \
     GOPATH=/tmp/go 

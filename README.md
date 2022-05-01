@@ -22,18 +22,22 @@ Exposes Ports:  <none>
 ```
 In addition to the previous points, the included golang image may not work with every go source code project.
 
-Creating your own go s2i builder image can greatly improve the situation while maintaining the benefits of s2i.  The process of [creating the builder image](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) is relatively simple and the result can be an image that only contains the components needed for the project, reducing its size considerably; that exposes the ports required by the project; and that can produce a valid application image.
+Creating your own go s2i builder image can greatly improve the situation while maintaining the benefits of s2i.  The process of [creating the builder image](https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md#required-image-contents) is relatively simple and the result is an image that only contains the necessary components for the project, potentially reducing its size considerably; the new builder image also exposes the ports required by the project, and can produce a valid application image.
 
 ## S2I versus CI/CD tools
-S2i is readily availabe in Openshift, in particular it does not require the installation of any additional components in the cluster; on the developer workstation the only requirements are: the _oc_ cli and podman or docker, and even these last ones are not strictly required. 
-S2I is very simple to use, to fully deploy most applications a single `oc new-app` command is enough, while the final step of creating the external route is left out, for security reasons, not all applications are meant to be made public.
-The S2I process consumes few resourcesa, mostly the builder container based on the builder image, building the source code, and later the deployment process deploying the application. 
-For all the above reasons, S2I fits very well for simple use cases and developer workstations.
+S2i is readily availabe in Openshift, in particular it does not require the installation of any additional components in the cluster.  On the developer workstation the only requirements are: the _oc_ client, and podman or docker, and even these last two are not strictly required. 
+
+S2I is very simple to use, to fully deploy most applications a single `oc new-app` command is enough, only the final step of creating the external route is left out for security reasons, not all applications are meant to be made public.
+
+The S2I process consumes few resources, mostly the application building from source code done by the builder container, based on the builder image; and later the deployment of the application in a pod.
+
+For all the above reasons, S2I fits very well for simple use cases that don't require complicated setups.
 
 On the other hand, S2I lacks many of the features of any traditional CI/CD system.
-When using S2I, since the builder image, the source code and the binary application are combined together, the resulting application image will contain the whole development toolset, and the application source code, which may be a security risk, and a waste of space.  The resulting image is much bigger than need be, consuming more storage resources and taking more time to deploy containers based on it, if the pod is deployed on a host that needs to pull the image.  A traditional CI/CD system cand build the application and create a new image containing only the necessary elements to run the application.  
 
-However the CI/CD system requires the installation of additional componentsis, a complex configuration, and consumes a significat ammount of resources.  Making the deployment of such system a complex and time consuming task, even for simple use cases.
+When using S2I, since the builder image, the source code and the binary application are combined together, the resulting application image will contain the whole development toolset, and the application source code, which may be a security risk, and a waste of space.  The resulting image is much bigger than need be, consuming more storage resources and taking more time to deploy containers based on it, if the pod is deployed on a host that needs to pull the image from a registry.  A traditional CI/CD system cand build the application and create a new image containing only the necessary elements to run the application.  
+
+However CI/CD systems requires the installation of additional components, a complex configuration, and consume a significat ammount of resources.  Making the deployment of such systems a complex and time consuming task, specially for simple use cases.
 
 ## Files and Directories for the builder image 
 | File                   | Required? | Description                                                  |
@@ -44,9 +48,9 @@ However the CI/CD system requires the installation of additional componentsis, a
 | s2i/bin/run            | Yes       | Script that runs the application                             |
 
 ### Dockerfile
-The Dockerfile file contains the instructions describing how to create the builder image.  It needs to include all the components needed to build the go applications from source code. By limiting the components installed to only those required, the size of the image can be reduced considerably in comparison to the golang image included with Openshift.
+The Dockerfile file contains the instructions describing how to create the s2i builder image.  It needs to include all the components required to build the go application from source code. By limiting the components installed to only those required, the size of the image can be reduced considerably in comparison to the golang image included with Openshift.
 
-The Dockerfile included in this repository is made up of the following steps:
+The Dockerfile file included in this repository contains the following steps:
 
 The image is base on an ubi8 image:
 ```
@@ -60,7 +64,7 @@ ENV ...
     GOPATH=/tmp/go 
 ENV APPROOT=$GOPATH/bin
 ```
-Some labels are defined to provide information to Openshift on some aspects of the image, like the network ports is exposes and the location of the s2i scripts.
+Some labels are defined to provide information to Openshift on some aspects of the image, like the network ports it exposes and the location of the s2i scripts.
 ```
 LABEL ...
       io.openshift.expose-services="8080:http" \
@@ -76,7 +80,7 @@ The s2i scripts are copied on the same directory that was defined for the label 
 ```
 COPY ./s2i/bin/ /usr/libexec/s2i
 ```
-The containers based on the go builder image, run, inside Openshift, using random unprivileged users so the directories used by the S2I process must be set accordingly. The 1001 user id is irrelevant, and not guarrantied to be the actual user id used by the containers based on this image.  
+The containers running in Openshift, based on the go builder image, use random unprivileged users so the directories used by the S2I process must be set accordingly. The 1001 user id is irrelevant, and not guarrantied to be the actual user id used by the containers based on this image.  
 The important part here is the group 0.  This is actually a __non privileged__ group, and the container is guarrantied to run using this group id when created inside Openshift. 
 ```
 RUN chown -R 1001:0 /usr/libexec/s2i && \
@@ -95,21 +99,20 @@ The port where the go application provides its services is defined. This informa
 ```
 EXPOSE 8080
 ```
-The starting command for any container based on this image is set to the usage script.  This script simply prints and usage message.  The builder image is not intended to be used on its own that is why its starting command does not do anything useful
+The starting command for any container based on this image is set to the _usage_ script.  This script simply prints and usage message.  The builder image is not intended to be used on its own, that is why its starting command does not do anything useful
 ```
 CMD ["/usr/libexec/s2i/usage"]
 ```
 
 ### S2I scripts
-The assemble, run, save-artifacts and usage scripts must be present in the builder image at the directory specified by the label __io.openshift.s2i.scripts-url__, usually /usr/libexec/s2i.  The assemble and run scripts are required, save-artifacts and usage are not.  In this repository the save-artifacts is not used.
+The _assemble_, _run_, _save-artifacts_ and _usage_ scripts must be present in the builder image at the directory specified by the label __io.openshift.s2i.scripts-url__, usually /usr/libexec/s2i.  The _assemble_ and _run_ scripts are required, _save-artifacts_ and _usage_ are not required.  In this repository the save-artifacts is not present.
 
-As seen in the previous section, the scripts are copied from the s2i/bin directory to /usr/libexec/s2i, for example the assemble script is at /usr/libexec/s2i/assemble.  
+As seen in the previous section, the scripts are copied from the s2i/bin directory in the local host to /usr/libexec/s2i in the container image, for example the assemble script is at /usr/libexec/s2i/assemble, inside the container image.  
 
 #### assemble
-This script is run during the S2I build process and is responsible for the actual building of the go application 
-In this repo this script is very simple.
+This script is run during the S2I build process and is responsible for the actual building of the go application.  In this repository the _assemble_ script is very simple.
 
-This script is run from the directory defined with the  _WORDIR_ directive in the Dockerfile, which is /tmp/go/src.
+This script is run from the directory defined with the  _WORDIR_ directive in the Dockerfile, which is /tmp/go/src and takes the following steps:
 
 * First, the directory with the source code cloned from the git repository, that the S2I process copies to /tmp/src, is moved and renamed to app-src, which actually is /tmp/go/src/app-src
 ```shell
@@ -123,8 +126,9 @@ pushd app-src
 ```shell
 go get -u -d -v ./...
 ```
-Unfortunately this does not work if the _go_ source code belongs to a non default branch in the repository.  If a specific branch is used with __oc new-app gobuilder~https://github.com/user/repo/code#branch__ command, that branch must be set as default in the git repository.
-* Next the application source code is built in verbose mode, and the resultin executable file called gobinary is placed at /tmp/go/bin/gobinary.  
+Unfortunately this step doesn't work if the _go_ source code belongs to a non default branch in the git repository.  If a specific branch is referenced with a command like __oc new-app gobuilder~https://github.com/user/repo/code#branch__, that branch must be set as default in the git repository.
+
+* Next the application source code is built in verbose mode, and the resulting executable file called gobinary is placed at /tmp/go/bin/gobinary.  
 ```shell
 go build -v -x -o ${APPROOT}/gobinary
 ```
@@ -135,7 +139,7 @@ popd
 ```
 
 #### run
-This script will be used to run the go application and will be set as the CMD for the resulting application image.  To make sure that signals are correctly propagated to the container, the application should be started using the __exec__ command.
+This script will be used to run the go application and will be set as the CMD for the resulting application image.  To make sure that the system signals are correctly propagated to the container, the application should be started using the __exec__ command.
 
 ```shell
 exec ${APPROOT}/gobinary
@@ -151,7 +155,7 @@ To go from the Dockerfile and S2I scripts described above, to a builder image th
 * Push the builder image to a container registry
 * Create an image stream inside an Openshift project referencing the builder image
 
-Each step has different alternative ways to be executed as will be explained in the following sections.
+Each one of these steps has different alternatives to be executed as will be explained in the following sections.
 
 ### Making the builder image
 To make the builder image, the Dockerfile must be processed.  Two options will be shown here to do this:
@@ -159,26 +163,30 @@ To make the builder image, the Dockerfile must be processed.  Two options will b
 * Running  `oc new-app` in an Openshift cluster
 
 #### Using podman or docker
-To create the builder image using podman or docker the requirements are: Having docker or podman installed in the host, and cloning the git repository containing the Dockerfile and s2i scripts:
+To create the builder image using podman or docker the requirements are: 
+* Having podman or docker installed in the host
 ```shell
-$ sudo yum install -y podman 
-$ git clone http://github.com/tale-toul/simple-web
+sudo yum install -y podman 
+```
+* Cloning the git repository containing the Dockerfile and s2i scripts:
+```shell
+git clone https://github.com/tale-toul/gobuilder-s2i.git
 ```
 
-Enter the directory where the Dockerfile is located and run the build command.  Both docker and podman use the same options so it doesn't matter which command is used.  In the case of docker the docker daemon needs to be running, in the case of podman the commands must be run as the root user:
+Enter the directory where the Dockerfile is located and run the build command.  Both docker and podman use the same options so it doesn't matter which one is used.  In the case of using docker, the docker daemon needs to be running, in the case of podman, the commands must be run as the root user:
 
 ```shell
-$ cd simple-web/go_builder_image/
-$ sudo podman build -t gobuilder .
+cd gobuilder-s2i/go_builder_image/
+sudo podman build -t gobuilder .
 ```
-An image named _localhost/gobuilder_ with tag latest should be added to the local image cache:
+An image with name _localhost/gobuilder_ with a tag of _latest_ is added to the local image cache:
 
 ```shell
-$ sudo podman images
+sudo podman images
 REPOSITORY                            TAG      IMAGE ID       CREATED          SIZE
 localhost/gobuilder                   latest   e583efd6a524   20 minutes ago   671 MB
 ```
-This image is not accesible from Openshift, and therefore cannot be used as a builder image yet, it needs to be pushed to a registry.
+This image is not accesible from Openshift, and therefore cannot be used as a builder image yet, it needs to be pushed to a registry.  More on this later.
 
 #### Running 'oc new-app' in an Openshift cluster
 S2I supports the creation of container images from a _Dockerfile_ stored in a git repository, therefore it is possible to use the `oc new-app` command to create the builder image directly from Openshift.  The user running these commands does not require any special permissions in the cluster.
@@ -190,24 +198,24 @@ When the `oc new-app` command completes the builder image will be ready to be us
 The disadvantages of this method are:
 
 * The `oc new-app` command tries to deploy a container based on the image just created, but since this image is not intended to be run standalone, the deployment goes into a _CrashLoopBackOff_ state and the deployment needs to be manually removed or scaled down to zero.  
-* A service is created but is useless because of the situation described in the previous point, so it needs to be removed as well.
-* Every time a new build is created, for example with the command __oc start-build__, all the steps in the Dockerfile are executed, unlike podman and docker, no image layers are cached for possible reuse in subsequent builds.  This results in longer build times.
+* A kubernetes service is created in the namespace, but it is useless because of the situation described in the previous point, so it needs to be removed as well.
+* Every time a new build is created, for example with the command __oc start-build__, all the steps in the Dockerfile are executed, unlike with podman and docker, no image layers are cached for possible reuse in subsequent builds.  This results in longer build times.
 
 To run the following commands it is assumed that the user has an active session in an Openshift cluster.  Create the project and run the `oc new-app` command using the URL of the git repository and directory (__context-dir__) where the Dockerfile is stored:
 
 ```
-$ oc new-project simplebuildergo
-$ oc new-app --name gobuilder https://github.com/tale-toul/gobuilder-s2i --context-dir go_builder_image
+oc new-project simplebuildergo
+oc new-app --name gobuilder https://github.com/tale-toul/gobuilder-s2i --context-dir go_builder_image
 ```
-The above `oc new-app` command will return after a few seconds, but the build process will take a few minutes more to complete.  To follow the buil process run:
+The `oc new-app` command will return after a few seconds, but the build process will take a few minutes to complete.  To follow the buil process run:
 
 ```shell
-$ oc logs -f bc/gobuilder
+oc logs -f bc/gobuilder
 ```
-When the build process finishes with the message `Push successful` a deployment is triggered, but as mentioned before, it will eventually fail.  
+When the build process finishes with the message `Push successful` a deployment is triggered, but as mentioned earlier, this will eventually fail.  
 
 ```shell
-$ oc get pods
+oc get pods
 NAME                         READY   STATUS             RESTARTS   AGE
 gobuilder-1-build            0/1     Completed          0          6m48s
 gobuilder-7bf7dbf776-w7f2r   0/1     CrashLoopBackOff   3          2m21s
@@ -242,34 +250,38 @@ NAME        IMAGE REPOSITORY                                                    
 gobuilder   default-route-openshift-image-registry.apps.cartapacio.lab.pnq2.cee.redhat.com/simplebuildergo/gobuilder   latest   12 minutes ago
 ```
 ### Pushing the builder image to a container registry
-In the case that the builder image was created with _podman_ or _docker_, or was created with __oc new-app__ and needs to be available from an external registry, it has to be pushed to the external registry.  In the following example the registry is assumed to be private and needs authentication, both for pushing and pulling images.  Two different ways to push the image will be shown: using podmand (docker) and using skopeo.  
+If the builder image needs to be available from an external registry so it can be used from any namespace or even from other Openshift cluster, it has to be pushed to that external registry. This is always required if the image was built using podman or docker.
 
-The following commands must be executed in a host where the image is present in the image local cache
+In the following example the registry is assumed to be private and needs authentication, both for pushing and pulling images.  
+
+If the image was built using podman or docker two different ways to push the image will be shown: using podmand (docker); and using skopeo.  
 
 #### Using podman or docker
 The options for podman and docker are the same, however docker requires the docker daemon to be running, and podman requires the commands to be run as the root user:
 
-Tag the local image with the name of the registry and user:
+The following commands must be executed in a host where the image is present in the images local cache.
+
+Tag the local image with the name of the registry and user.  In this case the registry is _quay.io_ and the user is _milponta_:
 
 ```shell
-$ sudo podman tag localhost/gobuilder quay.io/milponta/gobuilder
+sudo podman tag localhost/gobuilder quay.io/milponta/gobuilder
 ```
 Log in to the remote registry, assuming only logged in users can push images to the registry.  
 
 ```shell
-$ sudo podman login -u milponta quay.io
+sudo podman login -u milponta quay.io
 ```
 
 Push the image to the registry:
 ```shell
-$ sudo podman push quay.io/milponta/gobuilder
+sudo podman push quay.io/milponta/gobuilder
 ```
 
 #### Using skopeo
-The command line tool _skopeo_ can be used to push images to a registry, the advantage of this command is that with a single command it is possible to do the tagging, log in to the registry, and pushing the image:
+The _skopeo_ tool can be used to push images to a registry, the advantage of this command is that with a single command it is possible to do the tagging, log in to the registry, and pushing the image:
 
 ```shell
-$ sudo skopeo copy containers-storage:localhost/gobuilder docker://quay.io/milponta/gobuilder --dest-creds milponta:SuperSecretPass
+sudo skopeo copy containers-storage:localhost/gobuilder docker://quay.io/milponta/gobuilder --dest-creds milponta:SuperSecretPass
 ```
 If the registry server is using x509 certificates not know by the local system, the following error message will appear and the image is not pushed:
 
@@ -279,19 +291,19 @@ x509: certificate signed by unknown authority`
 In this case the option __--tls-verify=false__ can be used:
 
 ```shell
-$ sudo skopeo copy containers-storage:localhost/gobuilder docker://quay.io/milponta/gobuilder --dest-creds milponta:SuperSecretPass --dest-tls-verify=false
+sudo skopeo copy containers-storage:localhost/gobuilder docker://quay.io/milponta/gobuilder --dest-creds milponta:SuperSecretPass --dest-tls-verify=false
 ```
 
 ### Creating the image stream in Openshift
-If the image was not build using `oc new-app` or was pushed to an external registry, an image stream needs to be created.  The reason for this is that the S2I build process that creates the go application always takes the builder image from an image stream.  
+If the image was not build using `oc new-app` and was pushed to an external registry, an image stream needs to be created.  The reason for this is that the S2I build process that creates the go application image always takes the builder image from an image stream.  
 
 If the image registry containing the builder image needs authentication to pull images, the first step is to create a secret containing the credentials to access the registry.  If the registry does not required authenticatino to pull images this step can be skipped.
 
 ```shell
-$ oc create secret docker-registry extregistry --docker-server quay.io --docker-username milponta --docker-password SuperSecretPass
+oc create secret docker-registry extregistry --docker-server quay.io --docker-username milponta --docker-password SuperSecretPass
 ```
 
-The image stream can be created in the same project where the application is to be deployed or it can be created in a common or shared project where other application projects can also use it.
+The image stream can be created in the same project where the application is to be deployed or it can be created in a common or shared project where other projects can also use it.
 
 #### On the application project
 In case the go application and the image stream will reside in the same project, create the image stream with the following command.  If the registry requires credentials, the command will look for a secret valid for the remote registry name:
@@ -308,35 +320,39 @@ $ oc secrets link builder extregistry --for pull,mount
 ```
 
 #### On a common project
-If the image stream is created on a common project, from which other projects can use it, the __oc import-image__ command will include the option _--reference-policy=local_.  With this option there is need to share the secret or access credentials to the external registry with other projects, if credentials are required to pull images.  If the registry requires credentials, the command will look for a secret valid for the remote registry name:
+If the image stream is created on a common project, from which other projects can use it, the __oc import-image__ command must include the option _--reference-policy=local_.  With this option there is no need to share the secret or access credentials to the external registry with other projects, if credentials are required to pull images from the registry.  
+
+If the registry requires credentials to pull images, the command will look for a secret valid for the remote registry name.  Create this secret as explained in the previous section:
 
 ```shell
-$ oc import-image gobuilder --confirm --from quay.io/milponta/gobuilder --reference-policy=local
+oc import-image gobuilder --confirm --from quay.io/milponta/gobuilder --reference-policy=local
 ```
-Assuming that no applications will be deployed in this project there is no need to link the _extregistry_ secret with the builder service account.
-Service accounts in the projects where applications will be deployed using the _gobuilder_ image stream need access to it, for that the role _system:image-puller_ is used.  For example if the project _simpleweb_ is where the application will be deployed, the command to grant access to that project's service accounts to use the _gobuilder_ image stream is:
+Assuming that no applications will be deployed in this common project, there is no need to link the _extregistry_ secret with the builder service account.
+
+Service accounts in the projects where applications will be deployed using the _gobuilder_ image stream need access to the _extregistry_ secret, for that the role _system:image-puller_ is used.  For example if the project _simpleweb_ is where the application will be deployed, the command to grant access to that project's service accounts to use the _gobuilder_ image stream is:
 
 ```shell
-$ oc policy add-role-to-group system:image-puller system:serviceaccounts:simpleweb -n simplebuildergo
+oc policy add-role-to-group system:image-puller system:serviceaccounts:simpleweb -n simplebuildergo
 ```
-The above command grants permissions to pull images through the image stream in the project simplebuidergo, where the image stream was created, to all the service accounts in project simpleweb
+The above command grants permissions to pull images through the image stream in the project simplebuidergo, where the image stream was created, to all the service accounts in project simpleweb, where the application will be deployed.
 
 ## Creating the application image
-The application image combines the builder image with your applications source code, compiled using the *assemble* script, and run using the *run* script.
+The S2I process creates an application image that combines the builder image with your applications source code, compiled using the *assemble* script, and run using the *run* script.
 
 The creation of the application image and its deployment can be acomplish with a single `oc new-app`:
 
 If the image stream and the application are going to coexist in the same project:
 ```shell
-$ oc new-app --name simpleweb gobuilder~https://github.com/tale-toul/simple-web
+oc new-app --name simpleweb gobuilder~https://github.com/tale-toul/simple-web
 ```
-The `--name simpleweb` is used to assing a label `app=simpleweb` to the resources created by `oc new-app`
+The `--name simpleweb` is used to assign a label `app=simpleweb` to the resources created by `oc new-app`
+
 The builder image is specified by prefixing the git repository URL with `gobuilder~`
 
 If the image stream was created on a common project:
 
 ```shell
-$ oc new-app --name simpleweb common/gobuilder~https://github.com/tale-toul/simple-web
+oc new-app --name simpleweb common/gobuilder~https://github.com/tale-toul/simple-web
 ```
 The name of project where the image stream was created is prefixed to the name of the image stream.
 
