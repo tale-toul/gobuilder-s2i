@@ -228,7 +228,7 @@ In project simplebuildergo on server https://api.cartapacio.lab.pnq2.cee.redhat.
 
 svc/gobuilder - 172.30.116.41:8080
   deployment/gobuilder deploys istag/gobuilder:latest <-
-    bc/gobuilder docker builds https://github.com/tale-toul/simple-web on istag/ubi8:8.3 
+    bc/gobuilder docker builds https://github.com/tale-toul/gobuilder-s2i on istag/ubi8:8.3 
     deployment #2 running for 3 minutes - 0/1 pods (warning: 4 restarts)
     deployment #1 deployed 8 minutes ago
 
@@ -343,7 +343,7 @@ The creation of the application image and its deployment can be acomplish with a
 
 If the image stream and the application are going to coexist in the same project:
 ```shell
-oc new-app --name simpleweb gobuilder~https://github.com/tale-toul/simple-web
+oc new-app --name simpleweb gobuilder~https://github.com/tale-toul/gobuilder-s2i
 ```
 The `--name simpleweb` is used to assign a label `app=simpleweb` to the resources created by `oc new-app`
 
@@ -352,7 +352,7 @@ The builder image is specified by prefixing the git repository URL with `gobuild
 If the image stream was created on a common project:
 
 ```shell
-oc new-app --name simpleweb common/gobuilder~https://github.com/tale-toul/simple-web
+oc new-app --name simpleweb common/gobuilder~https://github.com/tale-toul/gobuilder-s2i
 ```
 The name of project where the image stream was created is prefixed to the name of the image stream.
 
