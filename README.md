@@ -126,7 +126,6 @@ pushd app-src
 ```shell
 go get -u -d -v ./...
 ```
-Unfortunately this step doesn't work if the _go_ source code belongs to a non default branch in the git repository.  If a specific branch is referenced with a command like __oc new-app gobuilder~https://github.com/user/repo/code#branch__, that branch must be set as default in the git repository.
 
 * Next the application source code is built in verbose mode, and the resulting executable file called gobinary is placed at /tmp/go/bin/gobinary.  
 ```shell
@@ -207,6 +206,12 @@ To run the following commands it is assumed that the user has an active session 
 oc new-project simplebuildergo
 oc new-app --name gobuilder https://github.com/tale-toul/gobuilder-s2i --context-dir go_builder_image
 ```
+In case the project is not in the default branch, the new branch cat be specified with a command like:
+
+```
+oc new-app --name gobuilder https://github.com/user/repo/code#branch
+```
+
 The `oc new-app` command will return after a few seconds, but the build process will take a few minutes to complete.  To follow the buil process run:
 
 ```shell
