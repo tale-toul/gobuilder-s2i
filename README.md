@@ -206,7 +206,7 @@ To run the following commands it is assumed that the user has an active session 
 oc new-project simplebuildergo
 oc new-app --name gobuilder https://github.com/tale-toul/gobuilder-s2i --context-dir go_builder_image
 ```
-In case the project is not in the default branch, the new branch cat be specified with a command like:
+In case the project is not in the default branch, the new branch can be specified with a command like:
 
 ```
 oc new-app --name gobuilder https://github.com/user/repo/code#branch
